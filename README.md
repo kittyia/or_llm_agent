@@ -71,7 +71,7 @@ Make sure to setup your OpenAI API key in `.env` file!
 
 ```bash
 #setup a .env file
-cp .env.example .env
+cp .env .env
 ```
 
 You need to set the OPENAI_API_KEY and OPENAI_API_BASE url(if you want to use OpenAI compatible service). You will also need to set the CLAUDE_API_KEY if you want to use claude model. If you want to use the DeepSeek model, I recommend you to use the Volcengine(you can get a tutorial from https://www.volcengine.com/docs/82379/1449737), set the OPENAI_API_KEY to Api Key provided by volcengine and set  OPENAI_API_BASE to

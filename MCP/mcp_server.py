@@ -4,7 +4,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from mcp.server.fastmcp import FastMCP
-from or_llm_eval import or_llm_agent
+from or_llm_evaluation import or_llm_agent
 import io
 from contextlib import redirect_stdout
 # Initialize FastMCP server

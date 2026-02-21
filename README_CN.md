@@ -68,7 +68,7 @@ bash ./run_eval_batch_agent.sh
 
 ```bash
 # 创建 .env 文件
-cp .env.example .env
+cp .env .env
 ```
 
 你需要在 `.env` 文件中设置 **OPENAI_API_KEY** 和 **OPENAI_API_BASE**（如果你使用 OpenAI 兼容服务）。  
