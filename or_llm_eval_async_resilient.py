@@ -7,6 +7,13 @@ import subprocess
 import sys
 import tempfile
 
+# Allow tiny CLI override for OPENAI env vars: --OPENAI_API_KEY=... --OPENAI_API_BASE=...
+for _arg in sys.argv[1:]:
+    if _arg.startswith("--OPENAI_API_KEY="):
+        os.environ["OPENAI_API_KEY"] = _arg.split("=", 1)[1]
+    if _arg.startswith("--OPENAI_API_BASE="):
+        os.environ["OPENAI_API_BASE"] = _arg.split("=", 1)[1]
+
 import json
 import asyncio
 import argparse
@@ -83,7 +90,7 @@ async def async_query_llm(messages, model_name="o3-mini", temperature=0.2, max_a
     Returns (success, result) tuple instead of raising exceptions after max attempts.
     """
     import time
-    
+
     for attempt in range(max_attempts):
         try:
             # Check if model is Claude (Anthropic)
@@ -92,7 +99,7 @@ async def async_query_llm(messages, model_name="o3-mini", temperature=0.2, max_a
                 system_message = next((m["content"] for m in messages if m["role"] == "system"), "")
                 user_messages = [m["content"] for m in messages if m["role"] == "user"]
                 assistant_messages = [m["content"] for m in messages if m["role"] == "assistant"]
-                
+
                 # Combine messages into a single conversation string
                 conversation = system_message + "\n\n"
                 for user_msg, asst_msg in zip_longest(user_messages, assistant_messages, fillvalue=None):
@@ -100,7 +107,7 @@ async def async_query_llm(messages, model_name="o3-mini", temperature=0.2, max_a
                         conversation += f"Human: {user_msg}\n\n"
                     if asst_msg:
                         conversation += f"Assistant: {asst_msg}\n\n"
-                
+
                 # Add the final user message if there is one
                 if len(user_messages) > len(assistant_messages):
                     conversation += f"Human: {user_messages[-1]}\n\n"
@@ -123,12 +130,12 @@ async def async_query_llm(messages, model_name="o3-mini", temperature=0.2, max_a
                     temperature=temperature
                 )
                 return True, response.choices[0].message.content
-                
+
         except (openai.APIConnectionError, anthropic.APIConnectionError) as e:
             print(f"[Connection Error] Attempt {attempt + 1}/{max_attempts} failed for model {model_name}")
             print(f"[Connection Error] Error details: {str(e)}")
             print(f"[Connection Error] Timestamp: {time.strftime('%Y-%m-%d %H:%M:%S')}")
-            
+
             if attempt < max_attempts - 1:
                 # Exponential backoff: 2^attempt seconds (2, 4, 8, ...)
                 wait_time = 60 * (attempt + 1)
@@ -137,13 +144,13 @@ async def async_query_llm(messages, model_name="o3-mini", temperature=0.2, max_a
             else:
                 print(f"[Connection Error] Max attempts ({max_attempts}) reached. Continuing with failure.")
                 return False, f"Connection error after {max_attempts} attempts: {str(e)}"
-                
+
         except Exception as e:
             # For other types of errors, don't retry
             print(f"[API Error] Non-connection error occurred with model {model_name}: {str(e)}")
             print(f"[API Error] Timestamp: {time.strftime('%Y-%m-%d %H:%M:%S')}")
             return False, f"API error: {str(e)}"
-    
+
     return False, "Unknown error occurred"
 
 async def async_extract_and_execute_python_code(text_content):
@@ -176,10 +183,10 @@ async def async_extract_and_execute_python_code(text_content):
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE
                 )
-                
+
                 # Wait for process completion with 60-second timeout
                 stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=60.0)
-                
+
             except asyncio.TimeoutError:
                 print("Python 代码执行超时 (60秒)，可能存在无限循环或长时间运行的代码")
                 # Kill the process if it's still running
@@ -189,12 +196,12 @@ async def async_extract_and_execute_python_code(text_content):
                 except:
                     pass
                 return False, "Code execution timeout (60 seconds) - possible infinite loop"
-            
+
             if proc.returncode == 0:
                 print("Python 代码执行成功，输出:\n")
                 stdout_str = stdout.decode()
                 print(stdout_str)
-                
+
                 best_obj = extract_best_objective(stdout_str)
                 if best_obj is not None:
                     print(f"\n最优解值 (Best objective): {best_obj}")
@@ -541,4 +548,4 @@ async def main():
 
 if __name__ == "__main__":
     # Running as script
-    asyncio.run(main()) 
+    asyncio.run(main())

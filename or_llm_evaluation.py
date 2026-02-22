@@ -14,6 +14,13 @@ from utils import (
     eval_model_result,
 )
 
+# Allow tiny CLI override for OPENAI env vars: --OPENAI_API_KEY=... --OPENAI_API_BASE=...
+import sys
+for _arg in sys.argv[1:]:
+    if _arg.startswith("--OPENAI_API_KEY="):
+        os.environ["OPENAI_API_KEY"] = _arg.split("=", 1)[1]
+    if _arg.startswith("--OPENAI_API_BASE="):
+        os.environ["OPENAI_API_BASE"] = _arg.split("=", 1)[1]
 
 # Load environment variables from .env file
 load_dotenv()
@@ -188,6 +195,13 @@ def parse_args():
                         help='Model name to use for LLM queries. Use "claude-..." for Claude models.')
     parser.add_argument('--data_path', type=str, default='data/datasets/IndustryOR.json',
                         help='Path to the dataset JSON file (supports both JSONL and regular JSON formats)')
+    # Minimal additional args to allow overriding OpenAI settings and enable math/debug flags
+    parser.add_argument('--openai_api_key', type=str, default=None,
+                        help='OpenAI API key (overrides environment variable)')
+    parser.add_argument('--openai_api_base', type=str, default=None,
+                        help='OpenAI API base URL (overrides environment variable)')
+    parser.add_argument('--math', action='store_true', help='Generate math model first')
+    parser.add_argument('--debug', action='store_true', help='Enable debug mode')
     return parser.parse_args()
 
 def load_dataset(data_path):
@@ -228,6 +242,22 @@ def load_dataset(data_path):
 
 if __name__ == "__main__":
     args = parse_args()
+
+    # If user provided openai args, set environment and re-create client (minimal, non-invasive)
+    if args.openai_api_key:
+        os.environ['OPENAI_API_KEY'] = args.openai_api_key
+    if args.openai_api_base:
+        os.environ['OPENAI_API_BASE'] = args.openai_api_base
+
+    # Re-create openai_client using possibly-updated environment values
+    openai_api_data = dict(
+        api_key = os.getenv("OPENAI_API_KEY"),
+        base_url = os.getenv("OPENAI_API_BASE")
+    )
+    openai_client = openai.OpenAI(
+        api_key=openai_api_data['api_key'],
+        base_url=openai_api_data['base_url'] if openai_api_data['base_url'] else None
+    )
 
     dataset = load_dataset(args.data_path)
 

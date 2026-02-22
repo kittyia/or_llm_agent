@@ -22,22 +22,28 @@ from utils import (
     extract_and_execute_python_code,
     eval_model_result
 )
+# Allow tiny CLI override for OPENAI env vars: --OPENAI_API_KEY=... --OPENAI_API_BASE=...
+for _arg in sys.argv[1:]:
+    if _arg.startswith("--OPENAI_API_KEY="):
+        os.environ["OPENAI_API_KEY"] = _arg.split("=", 1)[1]
+    if _arg.startswith("--OPENAI_API_BASE="):
+        os.environ["OPENAI_API_BASE"] = _arg.split("=", 1)[1]
 # Load environment variables from .env file
 load_dotenv()
 
 # api_data = dict(
 # api_key = 'sk-sbxihlsgrzsjfknusvrxiokzdwxofzbhjdyfznqgqifguclu', #os.getenv("OPENAI_API_KEY")
 # base_url = 'https://api.siliconflow.cn/v1' #os.getenv("OPENAI_API_BASE")
-# )    
+# )
 
 # api_data = dict(
 # api_key = os.getenv("OPENAI_API_KEY"),
 # base_url = os.getenv("OPENAI_API_BASE")
-# )   
+# )
 
 api_data = dict(
     api_key = os.getenv("OPENAI_API_KEY")
-)   
+)
 
 # Initialize OpenAI client
 client = openai.OpenAI(
