@@ -268,7 +268,7 @@ if __name__ == "__main__":
     error_datas = []
     start_time = time.time()
     for i, d in dataset.items():
-        print(f"=============== num {i} ==================")
+        print(f"程序运行时长: {time.time() - start_time:.2f} 秒，正在运行第 {i} 个问题")
         user_question, answer = d['question'], d['answer']
         print(user_question)
         print('-------------')
