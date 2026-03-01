@@ -180,5 +180,3 @@ data/datasets/ComplexOR
 model.ilp
 
 *.ilp
-
-*.csv

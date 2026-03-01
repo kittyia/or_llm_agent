@@ -1,17 +1,11 @@
 import re
 import csv
-from datetime import datetime
-
-from scipy.special import berp_zeros
 
 
 def parse_log_to_csv(log_file_path, output_csv_path):
     """
     解析日志文件，提取每个问题的运行信息并生成CSV。
-
-    参数:
-        log_file_path: 日志文件的路径
-        output_csv_path: 输出的CSV文件路径
+    改进：自动识别最后一个问题的运行时长（通过程序总耗时）
     """
     # 存储所有问题的数据
     problems = []
@@ -20,8 +14,11 @@ def parse_log_to_csv(log_file_path, output_csv_path):
     with open(log_file_path, 'r', encoding='utf-8') as f:
         content = f.read()
 
+    # 提取程序总耗时（在文件末尾）
+    total_time_match = re.search(r'总耗时:\s*([\d.]+)\s*秒', content)
+    total_time = float(total_time_match.group(1)) if total_time_match else None
+
     # 按问题分割（使用“开始运行第 X 个问题”作为分隔标记）
-    # 正则表达式匹配 "程序运行时长: XXX.XX 秒，开始运行第 N 个问题"
     problem_starts = list(re.finditer(
         r'程序运行时长: ([\d.]+) 秒，开始运行第 (\d+) 个问题',
         content
@@ -31,15 +28,19 @@ def parse_log_to_csv(log_file_path, output_csv_path):
         current_problem_num = int(start_match.group(2))
         current_start_time = float(start_match.group(1))
 
-        # 确定该问题的结束时间（下一个问题的开始时间，或文件末尾）
+        # 确定该问题的结束时间
         if i < len(problem_starts) - 1:
+            # 不是最后一个问题：用下一个问题的开始时间
             next_start_time = float(problem_starts[i + 1].group(1))
-            duration = next_start_time - current_start_time
+            duration = round(next_start_time - current_start_time, 2)
         else:
-            # 最后一个问题，无法计算时长（因为没有下一个开始时间）
-            duration = None
+            # 是最后一个问题：用程序总耗时减去当前开始时间
+            if total_time is not None:
+                duration = round(total_time - current_start_time, 2)
+            else:
+                duration = None  # 如果找不到总耗时，就保持None
 
-        # 确定该问题的内容区间（从当前匹配结束到下一个匹配开始）
+        # 确定该问题的内容区间
         start_pos = start_match.end()
         if i < len(problem_starts) - 1:
             end_pos = problem_starts[i + 1].start()
@@ -49,20 +50,17 @@ def parse_log_to_csv(log_file_path, output_csv_path):
         problem_content = content[start_pos:end_pos]
 
         # 从该问题的内容中提取运行成功和求解正确信息
-        # 提取 [最终结果] 行
         final_result_match = re.search(r'\[最终结果\] 运行成功: (True|False), 求解正确: (True|False)', problem_content)
         if final_result_match:
             run_success = final_result_match.group(1) == 'True'
             solve_correct = final_result_match.group(2) == 'True'
         else:
-            # 如果没有找到最终结果行，尝试找阶段结果行（可能代码都没执行）
+            # 如果没有找到最终结果行，尝试找阶段结果行
             stage_result_match = re.search(r'阶段结果: (True|False), ([\d.]+|None)', problem_content)
             if stage_result_match:
-                # 阶段结果存在，说明至少代码运行了
                 run_success = stage_result_match.group(1) == 'True'
-                solve_correct = False  # 如果没有最终结果，默认求解不正确
+                solve_correct = False
             else:
-                # 连阶段结果都没有，说明代码可能根本没执行
                 run_success = False
                 solve_correct = False
 
@@ -70,7 +68,7 @@ def parse_log_to_csv(log_file_path, output_csv_path):
             'problem_num': current_problem_num,
             'run_success': run_success,
             'solve_correct': solve_correct,
-            'duration': round(duration, 2) if duration is not None else None
+            'duration': duration
         })
 
     # 写入CSV文件
@@ -88,6 +86,14 @@ def parse_log_to_csv(log_file_path, output_csv_path):
             })
 
     print(f"已成功解析 {len(problems)} 个问题，结果已保存到 {output_csv_path}")
+    if total_time:
+        print(f"程序总运行时长: {total_time} 秒")
+
+    # 显示统计信息
+    run_success_count = sum(1 for p in problems if p['run_success'])
+    solve_correct_count = sum(1 for p in problems if p['solve_correct'])
+    print(f"运行成功: {run_success_count}/{len(problems)}")
+    print(f"求解正确: {solve_correct_count}/{len(problems)}")
 
     # 显示前几行作为预览
     print("\n预览（前5行）:")
