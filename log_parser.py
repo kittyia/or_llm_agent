@@ -104,10 +104,10 @@ def parse_log_to_csv(log_file_path, output_csv_path):
 
 # 使用示例
 if __name__ == "__main__":
-    baseline_log_file = "baseline.log"  # baseline
-    agent_log_file = "agent_mode.log"  # agent
-    baseline_csv = "baseline_results.csv"
-    agent_csv = "agent_mode_results.csv"
+    baseline_log_file = "BWOR_baseline.log"  # baseline
+    agent_log_file = "BWOR_agent_mode.log"  # agent
+    baseline_csv = "BWOR_baseline_results.csv"
+    agent_csv = "BWOR_agent_mode_results.csv"
 
     parse_log_to_csv(baseline_log_file, baseline_csv)
     parse_log_to_csv(agent_log_file, agent_csv)
